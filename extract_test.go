@@ -124,6 +124,18 @@ func TestExtractURLIndices(t *testing.T) {
 	}
 }
 
+func BenchmarkExtractHashtags(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ExtractHashtagMatches("Getting my Oktoberfest on #münchen")
+	}
+}
+
+func BenchmarkExtractURLs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		ExtractURLMatches("Extract valid URL: http://google.com/#search?q=iphone%20-filter%3Alinks")
+	}
+}
+
 func unicodeToByteOffset(s string, charIdx [2]int) (byteIdx [2]int) {
 	var j int
 	for i := range s {
