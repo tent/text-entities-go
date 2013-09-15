@@ -29,6 +29,14 @@ type conformanceSuite struct {
 			Text        string
 			Expected    []string
 		}
+		URLIndices []struct {
+			Description string
+			Text        string
+			Expected    []struct {
+				URL     string
+				Indices []int
+			}
+		} `yaml:"urls_with_indices"`
 	}
 }
 
@@ -51,25 +59,22 @@ func TestExtractHashtags(t *testing.T) {
 			continue
 		}
 		if !reflect.DeepEqual(res, test.Expected) {
-			t.Errorf("%s: got %v, want %v", test.Description, res, test.Expected)
+			t.Errorf("%s: want %v, got %v", test.Description, test.Expected, res)
 		}
 	}
 }
 
 func TestExtractHashtagIndices(t *testing.T) {
 	for _, test := range conformance.Tests.HashtagIndices {
-		res := ExtractHashtagIndices(test.Text)
-		if len(test.Expected) == 0 && len(res) == 0 {
+		res := ExtractHashtagMatches(test.Text)
+		if len(test.Expected) != len(res) {
+			t.Errorf("%s: want %v, got %v", test.Description, test.Expected, res)
 			continue
 		}
-		if len(test.Expected) != len(res) {
-			t.Errorf("%s: want %s, got %s", test.Description, res, test.Expected)
-		}
 		for i, expected := range test.Expected {
-			hashtag := test.Text[res[i][0]:res[i][1]]
-			ex := unicodeSlice(test.Text, expected.Indices[0], expected.Indices[1])
-			if hashtag != ex || hashtag != expected.Hashtag {
-				t.Errorf("%s: [%d] want %s %s, got %s", test.Description, i, ex, expected.Hashtag, hashtag)
+			ei := unicodeToByteOffset(test.Text, [2]int{expected.Indices[0], expected.Indices[1]})
+			if res[i].Text != expected.Hashtag || res[i].Indices[0] != ei[0] || res[i].Indices[1] != ei[1] {
+				t.Errorf("%s: [%d] want %v, got {%s %v}", test.Description, i, expected, res[i].Text, ei)
 			}
 		}
 	}
@@ -95,18 +100,43 @@ func TestExtractURLs(t *testing.T) {
 	}
 }
 
-func unicodeSlice(s string, j, k int) string {
-	res := make([]rune, 0, k-j-1)
-	var i int
-	for _, r := range s {
-		i++
-		if i-1 <= j {
+var skipURLIndexTests = map[int]bool{
+	3: true, 4: true, // CJK surrounded without protocol
+	5: true, // special t.co extraction
+}
+
+func TestExtractURLIndices(t *testing.T) {
+	for i, test := range conformance.Tests.URLIndices {
+		if skipURLIndexTests[i] {
 			continue
 		}
-		if i > k {
+		res := ExtractURLMatches(test.Text)
+		if len(test.Expected) != len(res) {
+			t.Errorf("%s: [%d] want %v, got %v", test.Description, i, test.Expected, res)
+			continue
+		}
+		for j, expected := range test.Expected {
+			ei := unicodeToByteOffset(test.Text, [2]int{expected.Indices[0], expected.Indices[1]})
+			if res[j].Text != expected.URL || res[j].Indices[0] != ei[0] || res[j].Indices[1] != ei[1] {
+				t.Errorf("%s: [%d-%d] want %v, got {%s %v}", test.Description, i, j, expected, res[j].Text, ei)
+			}
+		}
+	}
+}
+
+func unicodeToByteOffset(s string, charIdx [2]int) (byteIdx [2]int) {
+	var j int
+	for i := range s {
+		j++
+		if j == charIdx[0]+1 {
+			byteIdx[0] = i
+		} else if j > charIdx[1] {
+			byteIdx[1] = i
 			break
 		}
-		res = append(res, r)
 	}
-	return string(res)
+	if byteIdx[1] == 0 {
+		byteIdx[1] = len(s)
+	}
+	return
 }

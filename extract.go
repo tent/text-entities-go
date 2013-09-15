@@ -150,7 +150,7 @@ func init() {
 	regexen["hashtagBoundary"] = interp("(?:^|$|[^&a-z0-9_#{latinAccent}#{nonLatinHashtag}])")
 
 	invalidHashtagEnd = regexp.MustCompile(interp(`^(?:#{hashSigns}|://)`))
-	hashtagPattern = regexp.MustCompile(interp("(?i)(?:#{hashtagBoundary})(?:#{hashSigns})(#{hashtagAlphaNumeric}*#{hashtagAlpha}#{hashtagAlphaNumeric}*)"))
+	hashtagPattern = regexp.MustCompile(interp("(?i)(?:#{hashtagBoundary})((?:#{hashSigns})(#{hashtagAlphaNumeric}*#{hashtagAlpha}#{hashtagAlphaNumeric}*))"))
 
 	// URLs
 	regexen["urlPreceding"] = interp("[^A-Za-z0-9@＠$#＃#{invalid}]|^")
@@ -193,39 +193,44 @@ func init() {
 var hashtagPattern, invalidHashtagEnd *regexp.Regexp
 var urlPattern, asciiDomain, invalidBeforeDomain, invalidWithoutPath *regexp.Regexp
 
+type Match struct {
+	Text    string
+	Indices [2]int
+}
+
 func ExtractHashtags(s string) []string {
-	indices := ExtractHashtagIndices(s)
-	res := make([]string, len(indices))
-	for i, idx := range indices {
-		res[i] = s[idx[0]:idx[1]]
+	hashtags := ExtractHashtagMatches(s)
+	res := make([]string, len(hashtags))
+	for i, tag := range hashtags {
+		res[i] = tag.Text
 	}
 	return res
 }
 
-func ExtractHashtagIndices(s string) [][2]int {
+func ExtractHashtagMatches(s string) []Match {
 	matches := hashtagPattern.FindAllStringSubmatchIndex(s, -1)
-	res := make([][2]int, 0, len(matches))
+	res := make([]Match, 0, len(matches))
 	for _, m := range matches {
 		if invalidHashtagEnd.MatchString(s[m[3]:]) {
 			continue
 		}
-		res = append(res, [2]int{m[2], m[3]})
+		res = append(res, Match{s[m[4]:m[5]], [2]int{m[2], m[3]}})
 	}
 	return res
 }
 
 func ExtractURLs(s string) []string {
-	indices := ExtractURLIndices(s)
-	res := make([]string, len(indices))
-	for i, idx := range indices {
-		res[i] = s[idx[0]:idx[1]]
+	urls := ExtractURLMatches(s)
+	res := make([]string, len(urls))
+	for i, url := range urls {
+		res[i] = url.Text
 	}
 	return res
 }
 
-func ExtractURLIndices(s string) [][2]int {
+func ExtractURLMatches(s string) []Match {
 	matches := urlPattern.FindAllStringSubmatchIndex(s, -1)
-	res := make([][2]int, 0, len(matches))
+	res := make([]Match, 0, len(matches))
 	for _, m := range matches {
 		var before, protocol, path string
 		if m[2] != -1 {
@@ -256,7 +261,7 @@ func ExtractURLIndices(s string) [][2]int {
 				continue
 			}
 		}
-		res = append(res, [2]int{m[4], m[5]})
+		res = append(res, Match{s[m[4]:m[5]], [2]int{m[4], m[5]}})
 	}
 	return res
 }
