@@ -23,6 +23,12 @@ type conformanceSuite struct {
 				Indices []int
 			}
 		} `yaml:"hashtags_with_indices"`
+
+		URLs []struct {
+			Description string
+			Text        string
+			Expected    []string
+		}
 	}
 }
 
@@ -65,6 +71,26 @@ func TestExtractHashtagIndices(t *testing.T) {
 			if hashtag != ex || hashtag != expected.Hashtag {
 				t.Errorf("%s: [%d] want %s %s, got %s", test.Description, i, ex, expected.Hashtag, hashtag)
 			}
+		}
+	}
+}
+
+var skipURLTests = map[int]bool{
+	32: true, 33: true, 34: true, // CJK surrounded without protocol
+	65: true, 66: true, // special t.co extraction
+}
+
+func TestExtractURLs(t *testing.T) {
+	for i, test := range conformance.Tests.URLs {
+		if skipURLTests[i] {
+			continue
+		}
+		res := ExtractURLs(test.Text)
+		if len(test.Expected) == 0 && len(res) == 0 {
+			continue
+		}
+		if !reflect.DeepEqual(res, test.Expected) {
+			t.Errorf("%s: [%d] got %#v, want %#v", test.Description, i, res, test.Expected)
 		}
 	}
 }
