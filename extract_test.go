@@ -54,11 +54,15 @@ func init() {
 
 func TestExtractHashtags(t *testing.T) {
 	for _, test := range conformance.Tests.Hashtags {
-		res := ExtractHashtags(test.Text)
+		res := Extract(test.Text, URLsAndHashtags).Hashtags // extract urls too so that overlapping entities are ignored
 		if len(test.Expected) == 0 && len(res) == 0 {
 			continue
 		}
-		if !reflect.DeepEqual(res, test.Expected) {
+		hashtags := make([]string, len(res))
+		for i, m := range res {
+			hashtags[i] = m.Text
+		}
+		if !reflect.DeepEqual(hashtags, test.Expected) {
 			t.Errorf("%s: want %v, got %v", test.Description, test.Expected, res)
 		}
 	}
