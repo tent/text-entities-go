@@ -59,7 +59,8 @@ func ExtractURLMatches(s string) []Match {
 		// We don't have lookahead, so manually check that the tld doesn't end in the middle of a word
 		if afterDomain != "" && ((afterDomain[0] >= '0' && afterDomain[0] <= '9') ||
 			(afterDomain[0] >= 'A' && afterDomain[0] <= 'Z') ||
-			(afterDomain[0] >= 'a' && afterDomain[0] <= 'z')) {
+			(afterDomain[0] >= 'a' && afterDomain[0] <= 'z') ||
+			afterDomain[0] == '@') {
 			continue
 		}
 

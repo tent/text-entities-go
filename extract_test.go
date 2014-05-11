@@ -87,6 +87,7 @@ func TestExtractHashtagIndices(t *testing.T) {
 var skipURLTests = map[int]bool{
 	32: true, 33: true, 34: true, // CJK surrounded without protocol
 	65: true, 66: true, // special t.co extraction
+	26: true, // broken: https://github.com/twitter/twitter-text-conformance/pull/73
 }
 
 func TestExtractURLs(t *testing.T) {
@@ -107,6 +108,7 @@ func TestExtractURLs(t *testing.T) {
 var skipURLIndexTests = map[int]bool{
 	3: true, 4: true, // CJK surrounded without protocol
 	5: true, // special t.co extraction
+	8: true, // contains unassigned idn tld
 }
 
 func TestExtractURLIndices(t *testing.T) {
